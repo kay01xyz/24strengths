@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>VIA Character Survey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- 載入 Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 載入 React, ReactDOM (以 CDN 方式) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- React 將掛載在這個節點上 -->
+  <div id="preview-app"></div>
+
+  <!-- 主要腳本：定義 VIACharacterSurvey 組件與渲染邏輯 -->
+  <script>
+    // 從全域取得 React (因為我們在 <head> 中以 <script> 方式引入)
+    const {
+      useState,
+      useEffect
+    } = React;
+
+    /**********************************************
+     * 問卷題目＆六大美德資料 
+     **********************************************/
+
+    // 大德目對應的主色/次色，供24強項圖表的前五項/後十九項區分
+    const virtueColors = {
+      "智慧與知識 (Wisdom & Knowledge)": ["#2F6DA5", "#BBD3E1"],
+      "勇氣 (Courage)": ["#D9573F", "#F4CAC3"],
+      "人道 (Humanity)": ["#F29F05", "#F9E0B7"],
+      "正義 (Justice)": ["#679436", "#C7D9C2"],
+      "節制 (Temperance)": ["#AF8EB5", "#E4DAE9"],
+      "超越 (Transcendence)": ["#4D9F8F", "#C8E3DE"],
+    };
+
+    const characterStrengthQuestions = [
+      {
+        category: "創造力 (Creativity)",
+        virtue: "智慧與知識 (Wisdom & Knowledge)",
+        questions: [
+          { id: "creativity_1", text: "我是一個具有創造性思維的人。", isReverse: false },
+          { id: "creativity_2", text: "我總是想到許多新的做事方式。", isReverse: false },
+          { id: "creativity_3", text: "我對自己的原創性感到自豪。", isReverse: false },
+          { id: "creativity_4", text: "我朋友說我有很多新穎及不同的想法。", isReverse: false },
+        ],
+      },
+      {
+        category: "好奇心 (Curiosity)",
+        virtue: "智慧與知識 (Wisdom & Knowledge)",
+        questions: [
+          { id: "curiosity_1", text: "我對這個世界總是感到好奇。", isReverse: false },
+          { id: "curiosity_2", text: "我有許多興趣。", isReverse: false },
+          { id: "curiosity_3", text: "我認為生活是非常有趣的。", isReverse: false },
+          { id: "curiosity_4", text: "遇到新的人事物我總想了解更多。", isReverse: false },
+        ],
+      },
+      {
+        category: "判斷力 (Judgment)",
+        virtue: "智慧與知識 (Wisdom & Knowledge)",
+        questions: [
+          { id: "judgment_1", text: "當我要做決定時，我會果斷地根據客觀資訊作出判斷。", isReverse: false },
+          { id: "judgment_2", text: "我總是能從正反兩面檢視事物。", isReverse: false },
+          { id: "judgment_3", text: "只有當我掌握事實我才會做出決定。", isReverse: false },
+          { id: "judgment_4", text: "每一個重要決定，我都能羅列充分的理由。", isReverse: false },
+        ],
+      },
+      {
+        category: "熱愛學習 (Love of Learning)",
+        virtue: "智慧與知識 (Wisdom & Knowledge)",
+        questions: [
+          { id: "love_of_learning_1", text: "我喜愛學習新事物。", isReverse: false },
+          { id: "love_of_learning_2", text: "我總是熱衷參與各種學習活動。", isReverse: false },
+          { id: "love_of_learning_3", text: "我一定是一位終身學習者。", isReverse: false },
+          { id: "love_of_learning_4", text: "我從未錯過學習新事物的機會。", isReverse: false },
+        ],
+      },
+      {
+        category: "洞見/全局觀 (Perspective)",
+        virtue: "智慧與知識 (Wisdom & Knowledge)",
+        questions: [
+          { id: "perspective_1", text: "我是一個很有智慧的人。", isReverse: false },
+          { id: "perspective_2", text: "別人認為我是一個有洞見的人。", isReverse: false },
+          { id: "perspective_3", text: "別人總會向我詢問意見。", isReverse: false },
+          { id: "perspective_4", text: "我精於融會貫通不同領域的知識。", isReverse: false },
+        ],
+      },
+      {
+        category: "勇敢 (Bravery)",
+        virtue: "勇氣 (Courage)",
+        questions: [
+          { id: "bravery_1", text: "要公開表達不受歡迎但有用的言論，我不會遲疑。", isReverse: false },
+          { id: "bravery_2", text: "當我聽到某人對他人說出不厚道的話時，我會表達異議。", isReverse: false },
+          { id: "bravery_3", text: "我是一位勇敢的人。", isReverse: false },
+          { id: "bravery_4", text: "面對強大的反對，我會秉持自己的立場。", isReverse: false },
+        ],
+      },
+      {
+        category: "堅毅 (Perseverance)",
+        virtue: "勇氣 (Courage)",
+        questions: [
+          { id: "perseverance_1", text: "儘管途中有所阻礙，我一定會完成事情。", isReverse: false },
+          { id: "perseverance_2", text: "我擅長完成任務，不管它們有多困難。", isReverse: false },
+          { id: "perseverance_3", text: "我總是能有始有終。", isReverse: false },
+          { id: "perseverance_4", text: "我從不半途而廢。", isReverse: false },
+        ],
+      },
+      {
+        category: "誠實 (Honesty)",
+        virtue: "勇氣 (Courage)",
+        questions: [
+          { id: "honesty_1", text: "我的承諾值得完全信任。", isReverse: false },
+          { id: "honesty_2", text: "我總是信守承諾。", isReverse: false },
+          { id: "honesty_3", text: "隱瞞或說慌是有必要的。", isReverse: true },
+          { id: "honesty_4", text: "我會說實話儘管這意味著我會惹上麻煩。", isReverse: false },
+        ],
+      },
+      {
+        category: "熱忱 / 活力 (Zest)",
+        virtue: "勇氣 (Courage)",
+        questions: [
+          { id: "zest_1", text: "我總是興奮地開展每一天。", isReverse: false },
+          { id: "zest_2", text: "人們會描述我是充滿熱忱的。", isReverse: false },
+          { id: "zest_3", text: "我天天活力充沛。", isReverse: false },
+          { id: "zest_4", text: "我為一天中的各種可能性感到興奮。", isReverse: false },
+        ],
+      },
+      {
+        category: "愛 (Love)",
+        virtue: "人道 (Humanity)",
+        questions: [
+          { id: "love_1", text: "我可以安心地接納他人的愛。", isReverse: false },
+          { id: "love_2", text: "我會非常努力去鼓舞失落的人。", isReverse: false },
+          { id: "love_3", text: "我擅長向他人表達我的關愛。", isReverse: false },
+          { id: "love_4", text: "我時常表達我對於他人的愛。", isReverse: false },
+        ],
+      },
+      {
+        category: "善良 (Kindness)",
+        virtue: "人道 (Humanity)",
+        questions: [
+          { id: "kindness_1", text: "我總是樂於主動幫助朋友一些小忙。", isReverse: false },
+          { id: "kindness_2", text: "幫助朋友對我而言從不感到壓力。", isReverse: false },
+          { id: "kindness_3", text: "我總是盡力去幫助有需要的人。", isReverse: false },
+          { id: "kindness_4", text: "我相信每個人有自己的責任，很少幫助別人。", isReverse: true },
+        ],
+      },
+      {
+        category: "社交智慧 (Social Intelligence)",
+        virtue: "人道 (Humanity)",
+        questions: [
+          { id: "social_intel_1", text: "我總是懂得說出讓人們感覺美好的話。", isReverse: false },
+          { id: "social_intel_2", text: "我總是和我剛認識的人相處得很好。", isReverse: false },
+          { id: "social_intel_3", text: "我總能和別人維持長久而深厚的關係。", isReverse: false },
+          { id: "social_intel_4", text: "我能輕易體會他人所處的情境與想法。", isReverse: false },
+        ],
+      },
+      {
+        category: "團隊合作 (Teamwork)",
+        virtue: "正義 (Justice)",
+        questions: [
+          { id: "teamwork_1", text: "當我是一個團隊成員時，我會盡力工作。", isReverse: false },
+          { id: "teamwork_2", text: "我真的樂於成為團體的一員。", isReverse: false },
+          { id: "teamwork_3", text: "對我而言，尊重團隊所做的決定極之重要。", isReverse: false },
+          { id: "teamwork_4", text: "我給與我的團隊成員絕對的支持。", isReverse: false },
+        ],
+      },
+      {
+        category: "公平 (Fairness)",
+        virtue: "正義 (Justice)",
+        questions: [
+          { id: "fairness_1", text: "我平等對待每個人。", isReverse: false },
+          { id: "fairness_2", text: "我從不因個人好惡而影響公正判斷。", isReverse: false },
+          { id: "fairness_3", text: "即使我不喜歡某人，我也會公平地對待他。", isReverse: false },
+          { id: "fairness_4", text: "我不預設任何成見去評斷他人。", isReverse: false },
+        ],
+      },
+      {
+        category: "領導 (Leadership)",
+        virtue: "正義 (Justice)",
+        questions: [
+          { id: "leadership_1", text: "人們總是找我來領導一個團體。", isReverse: false },
+          { id: "leadership_2", text: "我非常擅長帶領團隊活動。", isReverse: false },
+          { id: "leadership_3", text: "我擅於協助一群有差異的人彼此合作。", isReverse: false },
+          { id: "leadership_4", text: "我總能鼓勵並激發團隊成員的潛能。", isReverse: false },
+        ],
+      },
+      {
+        category: "寬恕 (Forgiveness)",
+        virtue: "節制 (Temperance)",
+        questions: [
+          { id: "forgiveness_1", text: "我認為最好的事是原諒與遺忘。", isReverse: false },
+          { id: "forgiveness_2", text: "我不想看到任何人受苦，即使是與我為敵的人。", isReverse: false },
+          { id: "forgiveness_3", text: "我從不懷恨在心。", isReverse: false },
+          { id: "forgiveness_4", text: "我總是願意給予別人改正的機會。", isReverse: false },
+        ],
+      },
+      {
+        category: "謙遜 (Humility)",
+        virtue: "節制 (Temperance)",
+        questions: [
+          { id: "humility_1", text: "對於發生在我身上的好事，我總是謙虛以對。", isReverse: false },
+          { id: "humility_2", text: "我絕不自誇我的成就。", isReverse: false },
+          { id: "humility_3", text: "我偏好多聽別人的經驗之談。", isReverse: false },
+          { id: "humility_4", text: "有人說謙遜是我的特質之一。", isReverse: false },
+        ],
+      },
+      {
+        category: "審慎 (Prudence)",
+        virtue: "節制 (Temperance)",
+        questions: [
+          { id: "prudence_1", text: "我總能在說話前先三思。", isReverse: false },
+          { id: "prudence_2", text: "我總是做出審慎的選擇。", isReverse: false },
+          { id: "prudence_3", text: "我是一位非常謹慎小心的人。", isReverse: false },
+          { id: "prudence_4", text: "在行動之前，我會極之認真考慮後果。", isReverse: false },
+        ],
+      },
+      {
+        category: "自我調節 (Self-Regulation)",
+        virtue: "節制 (Temperance)",
+        questions: [
+          { id: "self_regulation_1", text: "當我工作時，我不會輕易分心。", isReverse: false },
+          { id: "self_regulation_2", text: "對我而言，維持自律並不困難。", isReverse: false },
+          { id: "self_regulation_3", text: "我能克制自己停止沒有建設性的行為。", isReverse: false },
+          { id: "self_regulation_4", text: "我能抗拒誘惑。", isReverse: false },
+        ],
+      },
+      {
+        category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)",
+        virtue: "超越 (Transcendence)",
+        questions: [
+          { id: "beauty_excellence_1", text: "我總能會從他人忽略的事物中看見美好。", isReverse: false },
+          { id: "beauty_excellence_2", text: "當我看到美麗事物時，我會深受感動。", isReverse: false },
+          { id: "beauty_excellence_3", text: "對我而言，生活在美好環境十分重要。", isReverse: false },
+          { id: "beauty_excellence_4", text: "我總能覺察周遭的自然美。", isReverse: false },
+        ],
+      },
+      {
+        category: "感恩 (Gratitude)",
+        virtue: "超越 (Transcendence)",
+        questions: [
+          { id: "gratitude_1", text: "我每天至少一次會列舉上天所賜予的恩惠。", isReverse: false },
+          { id: "gratitude_2", text: "我是一位非常懂得感恩的人。", isReverse: false },
+          { id: "gratitude_3", text: "我的生命中幸運之事接踵而至。", isReverse: false },
+          { id: "gratitude_4", text: "當我感到沮喪時，總會想及我生命中的美好事物。", isReverse: false },
+        ],
+      },
+      {
+        category: "希望 (Hope)",
+        virtue: "超越 (Transcendence)",
+        questions: [
+          { id: "hope_1", text: "面對挑戰時，我依然對未來充滿希望。", isReverse: false },
+          { id: "hope_2", text: "我習慣在負面情況中發現正面機會。", isReverse: false },
+          { id: "hope_3", text: "我相信我能實現我設定的目標。", isReverse: false },
+          { id: "hope_4", text: "我堅信逆境終將過去，迎向更好的未來。", isReverse: false },
+        ],
+      },
+      {
+        category: "幽默 (Humor)",
+        virtue: "超越 (Transcendence)",
+        questions: [
+          { id: "humor_1", text: "我總能用幽默緩和尷尬或緊張的場面。", isReverse: false },
+          { id: "humor_2", text: "我每天都用機智的玩笑逗樂身邊的人。", isReverse: false },
+          { id: "humor_3", text: "我擅於在日常瑣事中發現好笑的一面。", isReverse: false },
+          { id: "humor_4", text: "我懂得拿捏玩笑分寸，並用幽默帶給他人正面感受。", isReverse: false },
+        ],
+      },
+      {
+        category: "靈性 (Spirituality)",
+        virtue: "超越 (Transcendence)",
+        questions: [
+          { id: "spirituality_1", text: "我的信念支撐了我生命的意義。", isReverse: false },
+          { id: "spirituality_2", text: "我是一位具有靈性信仰的人。", isReverse: false },
+          { id: "spirituality_3", text: "我相信我在這世界上有一個使命。", isReverse: false },
+          { id: "spirituality_4", text: "我的信念塑造了現在的我。", isReverse: false },
+        ],
+      },
+    ];
+
+    // 新增預先排序好的問題順序（避免同一個性格強項的問題連續出現）
+    // 透過交錯不同美德類別的問題來實現
+    const shuffledQuestionsOrder = [
+      // 第一頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 0},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 0},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 0},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 0},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 0},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 0},
+      
+      // 第二頁
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 0},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 0},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 0},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 0},
+      
+      // 第三頁
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 1},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 1},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 0},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 0},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 0},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 1},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 1},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 1},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 0},
+      
+      // 第四頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 1},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 1},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 1},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 1},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 2},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 2},
+      
+      // 第五頁
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 1},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 2},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 2},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 1},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 2},
+      
+      // 第六頁
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 2},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 2},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 1},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 1},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 2},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 3},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 3},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 1},
+      
+      // 第七頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 2},
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 3},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 3},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 2},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 3},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 3},
+      
+      // 第八頁
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 2},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 3},
+      {virtue: "人道 (Humanity)", category: "愛 (Love)", index: 4},
+      {virtue: "正義 (Justice)", category: "團隊合作 (Teamwork)", index: 4},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 3},
+      
+      // 第九頁
+      {virtue: "人道 (Humanity)", category: "善良 (Kindness)", index: 4},
+      {virtue: "正義 (Justice)", category: "公平 (Fairness)", index: 4},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 2},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 3},
+      {virtue: "人道 (Humanity)", category: "社交智慧 (Social Intelligence)", index: 4},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 2},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 3},
+      
+      // 第十頁
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 3},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 3},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "勇敢 (Bravery)", index: 4},
+      {virtue: "節制 (Temperance)", category: "寬恕 (Forgiveness)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 3},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "堅毅 (Perseverance)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 3},
+      
+      // 第十一頁
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "誠實 (Honesty)", index: 4},
+      {virtue: "節制 (Temperance)", category: "謙遜 (Humility)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 3},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 3},
+      {virtue: "勇氣 (Courage)", category: "熱忱 / 活力 (Zest)", index: 4},
+      {virtue: "節制 (Temperance)", category: "審慎 (Prudence)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 3},
+      {virtue: "超越 (Transcendence)", category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "感恩 (Gratitude)", index: 4},
+      
+      // 第十二頁
+      {virtue: "超越 (Transcendence)", category: "希望 (Hope)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "幽默 (Humor)", index: 4},
+      {virtue: "超越 (Transcendence)", category: "靈性 (Spirituality)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "創造力 (Creativity)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "好奇心 (Curiosity)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "判斷力 (Judgment)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "熱愛學習 (Love of Learning)", index: 4},
+      {virtue: "智慧與知識 (Wisdom & Knowledge)", category: "洞見/全局觀 (Perspective)", index: 4},
+      {virtue: "節制 (Temperance)", category: "自我調節 (Self-Regulation)", index: 4},
+      {virtue: "正義 (Justice)", category: "領導 (Leadership)", index: 4},
+    ];
+
+    // 根據預排序的順序創建問題的攤平列表
+    const getQuestionsFromOrder = (orderArray) => {
+      return orderArray.map(item => {
+        // 找到對應的問題組
+        const categoryGroup = characterStrengthQuestions.find(g => 
+          g.category === item.category && g.virtue === item.virtue
+        );
+        
+        if (!categoryGroup) {
+          return null;
+        }
+        
+        // 從問題組中獲取特定索引的問題
+        const question = categoryGroup.questions[item.index];
+        if (!question) {
+          return null;
+        }
+        
+        // 返回問題並附加類別和美德信息
+        return {
+          ...question,
+          category: categoryGroup.category,
+          virtue: categoryGroup.virtue
+        };
+      }).filter(q => q !== null); // 過濾掉可能的空值
+    };
+
+    // 攤平所有題目，使用預排序的順序
+    const allQuestions = getQuestionsFromOrder(shuffledQuestionsOrder);
+
+    // 六大德
+    const virtuesInfo = [
+      {
+        name: "智慧與知識 (Wisdom & Knowledge)",
+        desc: "認知優勢，涉及知識的獲取與運用。"
+      },
+      {
+        name: "勇氣 (Courage)",
+        desc: "情感優勢，涉及在面對外部或內部阻力時運用意志完成目標。"
+      },
+      {
+        name: "人道 (Humanity)",
+        desc: "人際優勢，涉及照顧和友善對待他人。"
+      },
+      {
+        name: "正義 (Justice)",
+        desc: "公民優勢，是健康社區生活的基礎。"
+      },
+      {
+        name: "節制 (Temperance)",
+        desc: "防止過度的優勢。"
+      },
+      {
+        name: "超越 (Transcendence)",
+        desc: "與更廣闊宇宙建立連結並提供意義的優勢。"
+      },
+    ];
+
+    /**********************************************
+     * React 組件 VIACharacterSurvey
+     **********************************************/
+    function VIACharacterSurvey() {
+      // 首頁 (尚未開始)
+      const [hasStarted, setHasStarted] = useState(false);
+
+      // 問卷回答 (題目 id -> 分數)
+      const [answers, setAnswers] = useState({});
+      const [submitted, setSubmitted] = useState(false);
+
+      // 每頁 10 題
+      const [currentPage, setCurrentPage] = useState(0);
+      const questionsPerPage = 10;
+      const totalPages = Math.ceil(allQuestions.length / questionsPerPage);
+
+      // 分頁顯示用
+      const startIndex = currentPage * questionsPerPage;
+      const endIndex = startIndex + questionsPerPage;
+      const pageQuestions = allQuestions.slice(startIndex, endIndex);
+
+      // 進度條
+      const totalQuestions = allQuestions.length;
+      const answeredCount = Object.keys(answers).length;
+      const progressPercentage = Math.round((answeredCount / totalQuestions) * 100);
+
+      /**********************************************
+       * 事件處理
+       **********************************************/
+
+      // 首頁 => 開始問卷
+      const handleStart = () => {
+        setHasStarted(true);
+      };
+
+      // 選擇答案
+      const handleAnswerChange = (questionId, score) => {
+        setAnswers((prev) => ({
+          ...prev,
+          [questionId]: score,
+        }));
+      };
+
+      // 清除當前頁面的所有答案
+      const handleClearPageAnswers = () => {
+        if (window.confirm("確定要清除此頁所有回答嗎？")) {
+          const updatedAnswers = { ...answers };
+          pageQuestions.forEach(question => {
+            delete updatedAnswers[question.id];
+          });
+          setAnswers(updatedAnswers);
+        }
+      };
+
+      // 分頁 - 下一頁
+      const handleNextPage = () => {
+        // 檢查該頁是否所有題目都已回答
+        const unanswered = pageQuestions.filter((q) => answers[q.id] === undefined);
+        if (unanswered.length > 0) {
+          let errorMsg = "此頁尚有題目未完成：\n";
+          unanswered.forEach((u) => {
+            errorMsg += `• ${u.text}\n`;
+          });
+          alert(errorMsg);
+          return;
+        }
+
+        if (currentPage < totalPages - 1) {
+          setCurrentPage((prev) => prev + 1);
+        }
+      };
+
+      // 分頁 - 上一頁
+      const handlePrevPage = () => {
+        if (currentPage > 0) {
+          setCurrentPage((prev) => prev - 1);
+        }
+      };
+
+      // 提交
+      const handleSubmit = () => {
+        if (answeredCount < totalQuestions) {
+          alert("請先完成所有題目再提交！");
+          return;
+        }
+        setSubmitted(true);
+      };
+
+      /**********************************************
+       * 統計函式
+       **********************************************/
+      // 24品格平均
+      const getCategoryAverages = () => {
+        const sumsAndCounts = characterStrengthQuestions.reduce((acc, group) => {
+          acc[group.category] = { sum: 0, count: 0 };
+          return acc;
+        }, {});
+        
+        allQuestions.forEach((q) => {
+          let userScore = answers[q.id];
+          if (typeof userScore === "number") {
+            // 處理反向題
+            const question = characterStrengthQuestions
+              .find(g => g.category === q.category)
+              ?.questions.find(item => item.id === q.id);
+            
+            if (question && question.isReverse) {
+              userScore = 6 - userScore; // 反轉分數 (5->1, 4->2, 3->3, 2->4, 1->5)
+            }
+            
+            sumsAndCounts[q.category].sum += userScore;
+            sumsAndCounts[q.category].count += 1;
+          }
+        });
+        
+        const resultArray = Object.entries(sumsAndCounts).map(([category, data]) => {
+          const avg = data.count > 0 ? data.sum / data.count : 0;
+          return { category, virtue: "", avg };
+        });
+        
+        // 配對 virtue
+        resultArray.forEach((item) => {
+          const group = characterStrengthQuestions.find((g) => g.category === item.category);
+          if (group) {
+            item.virtue = group.virtue;
+          }
+        });
+
+        // 實現分數相同時優先選擇不同美德的強項
+        const processedArray = sortWithDiverseVirtues(resultArray);
+        
+        return processedArray;
+      };
+
+      // 實現當分數相同時，優先選擇不同美德類型的強項
+      const sortWithDiverseVirtues = (inputArray) => {
+        // 先按平均分數降序排列
+        inputArray.sort((a, b) => b.avg - a.avg);
+        
+        // 用於保存最終排序結果
+        const finalResult = [];
+        // 用於追蹤已經添加的美德
+        const selectedVirtues = new Set();
+        
+        // 首先按照分數分組
+        const scoreGroups = {};
+        for (const item of inputArray) {
+          const scoreKey = item.avg.toFixed(3); // 使用固定精度來分組
+          if (!scoreGroups[scoreKey]) {
+            scoreGroups[scoreKey] = [];
+          }
+          scoreGroups[scoreKey].push(item);
+        }
+        
+        // 按分數從高到低處理每組
+        const sortedScores = Object.keys(scoreGroups).sort((a, b) => parseFloat(b) - parseFloat(a));
+        
+        for (const scoreKey of sortedScores) {
+          const sameScoreItems = scoreGroups[scoreKey];
+          
+          // 如果這組只有一個項目，直接添加
+          if (sameScoreItems.length === 1) {
+            finalResult.push(sameScoreItems[0]);
+            selectedVirtues.add(sameScoreItems[0].virtue);
+            continue;
+          }
+          
+          // 如果有多個項目具有相同分數，優先選擇尚未出現的美德
+          const newVirtueItems = sameScoreItems.filter(item => !selectedVirtues.has(item.virtue));
+          const repeatedVirtueItems = sameScoreItems.filter(item => selectedVirtues.has(item.virtue));
+          
+          // 對於新美德項目，按類別名稱字母順序排序（次要排序標準）
+          newVirtueItems.sort((a, b) => a.category.localeCompare(b.category));
+          
+          // 對於重複美德項目，也按類別名稱字母順序排序
+          repeatedVirtueItems.sort((a, b) => a.category.localeCompare(b.category));
+          
+          // 先添加新美德項目
+          for (const item of newVirtueItems) {
+            finalResult.push(item);
+            selectedVirtues.add(item.virtue);
+          }
+          
+          // 再添加重複美德項目
+          for (const item of repeatedVirtueItems) {
+            finalResult.push(item);
+          }
+        }
+        
+        return finalResult;
+      };
+
+      /**********************************************
+       * 畫面渲染
+       **********************************************/
+
+      // 1. 首頁 (尚未開始)
+      if (!hasStarted) {
+        return (
+          React.createElement(
+            "div",
+            { className: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center justify-center p-4" },
+            React.createElement(
+              "div",
+              { className: "max-w-3xl w-full bg-white rounded-xl shadow-lg overflow-hidden" },
+              React.createElement(
+                "div",
+                { className: "bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white" },
+                React.createElement("h1", { className: "text-3xl font-bold tracking-tight" }, "品格強項問卷"),
+                React.createElement("p", { className: "mt-2 opacity-90" }, "探索您的獨特優勢與潛能")
+              ),
+              React.createElement(
+                "div",
+                { className: "p-8" },
+                React.createElement(
+                  "div",
+                  { className: "flex flex-col md:flex-row gap-8" },
+                  React.createElement(
+                    "div",
+                    { className: "flex-1" },
+                    React.createElement("h2", { className: "text-xl font-semibold text-gray-800 mb-4" }, "關於本問卷"),
+                    React.createElement(
+                      "p",
+                      { className: "text-gray-600 mb-4" },
+                      "這份問卷基於正向心理學的研究，設計用來幫助您發現並了解自己的24項品格強項以及六大美德。通過完成這份評估，您將對自己的核心優勢有深入洞見。"
+                    ),
+                    React.createElement(
+                      "p",
+                      { className: "text-gray-600 mb-6" },
+                      "問卷包括96個問題，只需根據符合您自身情況的程度進行選擇。整個過程預計花費10-15分鐘。"
+                    ),
+                    React.createElement(
+                      "div",
+                      { className: "bg-blue-50 border-l-4 border-blue-500 p-4 mb-6" },
+                      React.createElement("h3", { className: "font-medium text-blue-800" }, "問卷將幫助您："),
+                      React.createElement(
+                        "ul",
+                        { className: "mt-2 text-blue-700 space-y-1" },
+                        React.createElement("li", null, "• 識別您最突出的品格強項"),
+                        React.createElement("li", null, "• 了解六大美德在您性格中的分佈"),
+                        React.createElement("li", null, "• 發現可以進一步發展的潛在領域")
+                      )
+                    )
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "flex-1 flex flex-col justify-between" },
+                    React.createElement(
+                      "div",
+                      { className: "bg-gray-50 p-5 rounded-lg mb-6" },
+                      React.createElement("h3", { className: "text-lg font-medium text-gray-800 mb-3" }, "六大美德領域"),
+                      React.createElement(
+                        "div",
+                        { className: "grid grid-cols-2 gap-3" },
+                        virtuesInfo.map((virtue, index) => (
+                          React.createElement(
+                            "div",
+                            {
+                              key: index,
+                              className: "p-3 rounded-md",
+                              style: { backgroundColor: virtueColors[virtue.name][1] },
+                            },
+                            React.createElement(
+                              "span",
+                              { className: "font-medium", style: { color: virtueColors[virtue.name][0] } },
+                              virtue.name.split(" (")[0]
+                            )
+                          )
+                        ))
+                      )
+                    ),
+                    React.createElement(
+                      "button",
+                      {
+                        onClick: handleStart,
+                        className:
+                          "w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-lg font-medium text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200",
+                      },
+                      "開始測試"
+                    )
+                  )
+                ),
+                React.createElement(
+                  "div",
+                  {
+                    className:
+                      "mt-8 pt-6 border-t border-gray-200 text-center text-gray-500 text-sm",
+                  },
+                  "基於正向心理學與品格強項的研究 • 本問卷結果僅供參考"
+                )
+              )
+            )
+          )
+        );
+      }
+
+      // 2. 問卷填寫中 (尚未提交)
+      if (!submitted) {
+        return (
+          React.createElement(
+            "div",
+            { className: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4" },
+            React.createElement(
+              "div",
+              { className: "max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden" },
+              React.createElement(
+                "div",
+                { className: "bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white" },
+                React.createElement("h1", { className: "text-2xl font-bold" }, "品格強項測試"),
+                React.createElement(
+                  "p",
+                  { className: "text-sm mt-1 opacity-90" },
+                  "請選擇最符合您的想法或行為的程度（1-5分）"
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "p-6" },
+                // 進度條
+                React.createElement(
+                  "div",
+                  { className: "mb-6" },
+                  React.createElement(
+                    "div",
+                    { className: "flex justify-between mb-2 text-sm text-gray-600" },
+                    React.createElement("span", null, "進度"),
+                    React.createElement("span", { className: "font-medium" }, progressPercentage, "% 已完成")
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "w-full bg-gray-200 h-2 rounded-full overflow-hidden" },
+                    React.createElement("div", {
+                      className: "bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full",
+                      style: { width: progressPercentage + "%" },
+                    })
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "flex justify-between mt-1 text-xs text-gray-400" },
+                    React.createElement(
+                      "span",
+                      null,
+                      "第 ",
+                      currentPage + 1,
+                      " 頁，共 ",
+                      totalPages,
+                      " 頁"
+                    ),
+                    React.createElement(
+                      "span",
+                      null,
+                      answeredCount,
+                      "/",
+                      totalQuestions,
+                      " 題"
+                    )
+                  )
+                ),
+
+                // 清除當前頁面按鈕
+                React.createElement(
+                  "div",
+                  { className: "mb-6 flex justify-end" },
+                  React.createElement(
+                    "button",
+                    {
+                      onClick: handleClearPageAnswers,
+                      className: "text-red-500 text-sm flex items-center bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors"
+                    },
+                    React.createElement(
+                      "svg",
+                      {
+                        className: "w-4 h-4 mr-1",
+                        fill: "none",
+                        stroke: "currentColor",
+                        viewBox: "0 0 24 24",
+                        xmlns: "http://www.w3.org/2000/svg"
+                      },
+                      React.createElement("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: "2",
+                        d: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      })
+                    ),
+                    "清除此頁所有回答"
+                  )
+                ),
+
+                // 問題區塊
+                React.createElement(
+                  "div",
+                  { className: "space-y-6" },
+                  pageQuestions.map((question, qIndex) => (
+                    React.createElement(
+                      "div",
+                      {
+                        key: question.id,
+                        className:
+                          `p-4 rounded-lg border ` +
+                          (answers[question.id] !== undefined
+                            ? "border-green-100 bg-green-50"
+                            : "border-gray-200 bg-gray-50")
+                      },
+                      React.createElement(
+                        "p",
+                        { className: "font-medium text-gray-800 mb-3" },
+                        startIndex + qIndex + 1,
+                        ". ",
+                        question.text
+                      ),
+                      React.createElement(
+                        "div",
+                        { className: "grid grid-cols-5 gap-2 mt-1" },
+                        [5, 4, 3, 2, 1].map((score) => (
+                          React.createElement(
+                            "label",
+                            {
+                              key: score,
+                              className:
+                                `
+                            border rounded-md py-2 px-1 text-center text-sm cursor-pointer transition-all
+                            ` +
+                                (answers[question.id] === score
+                                  ? "bg-blue-100 border-blue-300 text-blue-800"
+                                  : "bg-white hover:bg-gray-100 border-gray-200 text-gray-700"),
+                            },
+                            React.createElement("input", {
+                              type: "radio",
+                              name: question.id,
+                              value: score,
+                              checked: answers[question.id] === score,
+                              onChange: () => handleAnswerChange(question.id, score),
+                              className: "sr-only",
+                            }),
+                            React.createElement("span", { className: "block font-medium mb-1" }, score),
+                            React.createElement(
+                              "span",
+                              { className: "block text-xs" },
+                              score === 5
+                                ? "非常像我"
+                                : score === 4
+                                ? "比較像我"
+                                : score === 3
+                                ? "中立"
+                                : score === 2
+                                ? "不太像我"
+                                : "非常不像我"
+                            )
+                          )
+                        ))
+                      )
+                    )
+                  ))
+                ),
+
+                // 分頁按鈕
+                React.createElement(
+                  "div",
+                  { className: "mt-8 flex justify-between items-center" },
+                  React.createElement(
+                    "div",
+                    null,
+                    currentPage > 0 &&
+                      React.createElement(
+                        "button",
+                        {
+                          onClick: handlePrevPage,
+                          className:
+                            "flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors",
+                        },
+                        React.createElement(
+                          "svg",
+                          {
+                            className: "w-5 h-5 mr-1",
+                            fill: "none",
+                            stroke: "currentColor",
+                            viewBox: "0 0 24 24",
+                            xmlns: "http://www.w3.org/2000/svg",
+                          },
+                          React.createElement("path", {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            strokeWidth: "2",
+                            d: "M15 19l-7-7 7-7",
+                          })
+                        ),
+                        "上一頁"
+                      )
+                  ),
+                  React.createElement(
+                    "div",
+                    null,
+                    currentPage < totalPages - 1
+                      ? React.createElement(
+                          "button",
+                          {
+                            onClick: handleNextPage,
+                            className:
+                              "flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors",
+                          },
+                          "下一頁",
+                          React.createElement(
+                            "svg",
+                            {
+                              className: "w-5 h-5 ml-1",
+                              fill: "none",
+                              stroke: "currentColor",
+                              viewBox: "0 0 24 24",
+                              xmlns: "http://www.w3.org/2000/svg",
+                            },
+                            React.createElement("path", {
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                              strokeWidth: "2",
+                              d: "M9 5l7 7-7 7",
+                            })
+                          )
+                        )
+                      : React.createElement(
+                          "button",
+                          {
+                            onClick: handleSubmit,
+                            className:
+                              "flex items-center bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors",
+                          },
+                          "提交完成",
+                          React.createElement(
+                            "svg",
+                            {
+                              className: "w-5 h-5 ml-1",
+                              fill: "none",
+                              stroke: "currentColor",
+                              viewBox: "0 0 24 24",
+                              xmlns: "http://www.w3.org/2000/svg",
+                            },
+                            React.createElement("path", {
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                              strokeWidth: "2",
+                              d: "M5 13l4 4L19 7",
+                            })
+                          )
+                        )
+                  )
+                )
+              )
+            )
+          )
+        );
+      }
+
+      // 3. 顯示結果 (已提交) - 只顯示前五大強項
+      const categoryData = getCategoryAverages(); // 24強項平均
+      const topFiveStrengths = categoryData.slice(0, 5); // 前五強項
+
+      return (
+        React.createElement(
+          "div",
+          { className: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4" },
+          React.createElement(
+            "div",
+            { className: "max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden" },
+            React.createElement(
+              "div",
+              { className: "bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white" },
+              React.createElement("h1", { className: "text-2xl font-bold" }, "您的品格強項分析"),
+              React.createElement(
+                "p",
+                { className: "text-sm mt-1 opacity-90" },
+                "以下展示了您最突出的前五大品格強項"
+              )
+            ),
+            React.createElement(
+              "div",
+              { className: "p-6" },
+              React.createElement(
+                "div",
+                { className: "bg-blue-50 rounded-lg p-5 mb-8" },
+                React.createElement(
+                  "h2",
+                  { className: "text-xl font-semibold text-blue-800 mb-3" },
+                  "您的前五大品格強項"
+                ),
+                React.createElement(
+                  "div",
+                  { className: "grid grid-cols-1 md:grid-cols-5 gap-4" },
+                  topFiveStrengths.map((strength, index) => {
+                    const colorArray = virtueColors[strength.virtue] || ["#999", "#ccc"];
+                    return (
+                      React.createElement(
+                        "div",
+                        {
+                          key: index,
+                          className: "rounded-lg p-4 text-center shadow-sm",
+                          style: { backgroundColor: colorArray[1] },
+                        },
+                        React.createElement(
+                          "div",
+                          {
+                            className: "text-lg font-bold mb-1",
+                            style: { color: colorArray[0] },
+                          },
+                          "#",
+                          index + 1
+                        ),
+                        React.createElement(
+                          "div",
+                          { className: "font-medium text-gray-800" },
+                          strength.category.split(" (")[0]
+                        ),
+                        React.createElement(
+                          "div",
+                          { className: "text-sm text-gray-500 mt-1" },
+                          strength.virtue.split(" (")[0]
+                        ),
+                        React.createElement(
+                          "div",
+                          {
+                            className: "mt-2 text-lg font-semibold",
+                            style: { color: colorArray[0] },
+                          },
+                          strength.avg.toFixed(1)
+                        )
+                      )
+                    );
+                  })
+                )
+              ),
+              React.createElement(
+                "div", 
+                { className: "p-5 bg-gray-50 border-t border-gray-200 rounded-lg" },
+                React.createElement(
+                  "h3", 
+                  { className: "text-lg font-semibold text-gray-800 mb-3" },
+                  "關於您的品格強項"
+                ),
+                React.createElement(
+                  "p",
+                  { className: "text-gray-600 mb-3" },
+                  "品格強項是一個人天生具備且自然而然能夠表現出來的特質。這些特質能讓我們在面對生活中的各種挑戰時，更有效地應對並獲得心靈的滿足感。"
+                ),
+                React.createElement(
+                  "p",
+                  { className: "text-gray-600" },
+                  "您的前五大強項代表了您最自然、最核心的特質。在日常生活和工作中充分發揮這些強項，將幫助您更有效地面對挑戰，體驗更多的成就感和幸福感。"
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "mt-8 text-center" },
+                React.createElement(
+                  "button",
+                  {
+                    onClick: () => {
+                      if (window.confirm("確定要重新開始測試嗎？所有答案將被清除。")) {
+                        setHasStarted(false);
+                        setSubmitted(false);
+                        setAnswers({});
+                        setCurrentPage(0);
+                      }
+                    },
+                    className: "px-6 py-2 bg-gray-200 rounded-lg text-gray-700 hover:bg-gray-300 transition-colors"
+                  },
+                  "重新開始測試"
+                )
+              )
+            )
+          )
+        )
+      );
+    }
+
+    // 將 VIACharacterSurvey 掛載到 #preview-app
+    ReactDOM.render(
+      React.createElement(VIACharacterSurvey, null),
+      document.getElementById("preview-app")
+    );
+  </script>
+</body>
+</html>
