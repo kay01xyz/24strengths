@@ -1,25 +1,27 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>VIA Character Survey</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- 載入 Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- 載入 React, ReactDOM (以 CDN 方式) -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.min.js"></script>
+<meta charset="utf-8"/>
+<title>VIA Character Survey</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<!-- 載入 Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- 載入 React, ReactDOM (以 CDN 方式) -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.min.js"></script>
 </head>
-<body class="bg-gray-100">
-  <!-- React 將掛載在這個節點上 -->
-  <div id="preview-app"></div>
-
-  <!-- 主要腳本：定義 VIACharacterSurvey 組件與渲染邏輯 -->
-  <script>
+<body class="bg-gray-100" data-i18n="React 將掛載在這個節點上">
+<!-- React 將掛載在這個節點上 -->
+<div class="fixed top-4 right-4 z-50" id="lang-switcher">
+<button class="bg-white border border-gray-300 px-4 py-2 rounded-md shadow hover:bg-gray-100 text-sm" onclick="toggleLanguage()">
+  切換語言 | Toggle Language
+</button>
+</div><div id="preview-app"></div>
+<!-- 主要腳本：定義 VIACharacterSurvey 組件與渲染邏輯 -->
+<script>
     // 從全域取得 React (因為我們在 <head> 中以 <script> 方式引入)
     const {
       useState,
@@ -165,9 +167,9 @@
         category: "團隊合作 (Teamwork)",
         virtue: "正義 (Justice)",
         questions: [
-          { id: "teamwork_1", text: "當我是一個團隊成員時，我會特別落力工作。", isReverse: false },
+          { id: "teamwork_1", text: "當我是一個團隊成員時，我會盡力工作。", isReverse: false },
           { id: "teamwork_2", text: "我真的樂於成為團體的一員。", isReverse: false },
-          { id: "teamwork_3", text: "對我而言，遵從團隊所做的決定極之重要。", isReverse: false },
+          { id: "teamwork_3", text: "對我而言，尊重團隊所做的決定極之重要。", isReverse: false },
           { id: "teamwork_4", text: "我給與我的團隊成員絕對的支持。", isReverse: false },
         ],
       },
@@ -235,7 +237,7 @@
         category: "美與卓越的欣賞 (Appreciation of Beauty & Excellence)",
         virtue: "超越 (Transcendence)",
         questions: [
-          { id: "beauty_excellence_1", text: "我總能從他人忽略的事物中看見美好。", isReverse: false },
+          { id: "beauty_excellence_1", text: "我總能會從他人忽略的事物中看見美好。", isReverse: false },
           { id: "beauty_excellence_2", text: "當我看到美麗事物時，我會深受感動。", isReverse: false },
           { id: "beauty_excellence_3", text: "對我而言，生活在美好環境十分重要。", isReverse: false },
           { id: "beauty_excellence_4", text: "我總能覺察周遭的自然美。", isReverse: false },
@@ -1168,5 +1170,19 @@
       document.getElementById("preview-app")
     );
   </script>
-</body>
+<script>
+let currentLang = "zh-TW";
+const translations = {'zh-TW': {'React 將掛載在這個節點上': 'React 將掛載在這個節點上'}, 'zh-CN': {'React 將掛載在這個節點上': 'React 将掛載在這個節點上'}};
+
+function toggleLanguage() {
+  currentLang = currentLang === "zh-TW" ? "zh-CN" : "zh-TW";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    const translated = translations[currentLang][key];
+    if (translated) {
+      el.innerText = translated;
+    }
+  });
+}
+</script></body>
 </html>
